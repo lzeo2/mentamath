@@ -17,6 +17,12 @@ Minimal mental math trainer — a single-file web app. No dependencies, no build
 
 Open `index.html` in any browser — works on phone and desktop. Type the answer, press Enter, get instant feedback (✓ streak / ✗ shows the right answer), next question auto-loads.
 
+**Features:**
+- 🎓 **Onboarding** on first visit (skip anytime, remembered)
+- ⚡ **Auto-submit** — the moment your typed answer is correct it submits itself; Enter still checks wrong answers
+- 🎚️ **Range filter** — cap generated numbers (≤30 / ≤100 / ≤1000 / ≤10000) alongside difficulty
+- 🔄 **Dynamic factoring** — composites built from 2–4 primes with a repeat-guard, so questions stay fresh
+
 **Factoring answers** accept flexible formats:
 `2^4×3`, `2^4 * 3`, `2x2x2x2x3`, `2^4,3` — all valid for 48.
 

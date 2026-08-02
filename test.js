@@ -9,6 +9,7 @@ function makeEl() {
     className: '', textContent: '', innerHTML: '', value: '', disabled: false,
     placeholder: '', onclick: null, addEventListener() {}, appendChild() {}, focus() {},
     classList: { toggle() {}, remove() {}, add() {} },
+    style: {},
   };
 }
 const els = {};
@@ -112,3 +113,42 @@ if (gSingle.kind !== 'arith') failures.push(`combo single-kind: got ${gSingle.ki
 console.log(`  combo subset (fact+ncr) produced: ${[...comboSeen].join(', ')}`);
 console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
 failures.slice(0, 5).forEach(f => console.log('  -', f));
+
+// ---- Range filter: all generators respect the cap ----
+const RANGE_TESTS = { small: 30, med: 100, large: 1000, huge: 10000 };
+let rangeFail = 0;
+for (const [range, cap] of Object.entries(RANGE_TESTS)) {
+  els['range'].value = range;
+  for (let i = 0; i < 150; i++) {
+    const a = genArithmetic('med');
+    if (a.expected > cap) { rangeFail++; failures.push(`arith ${a.q} = ${a.expected} exceeds ${range} cap`); }
+    const e = genExponents('med');
+    if (e.expected > cap) { rangeFail++; failures.push(`exp ${e.q} = ${e.expected} exceeds ${range} cap`); }
+    const f = genFactoring('med');
+    const n = parseInt(f.q.replace(/\D/g, ''));
+    if (n > cap || n < 12) { rangeFail++; failures.push(`fact ${f.q} outside [12,${cap}]`); }
+    const c = genNCR('med');
+    const m = c.q.match(/C\((\d+),/);
+    if (m && Number(m[1]) > ({ small: 8, med: 12, large: 16, huge: 20 })[range]) { rangeFail++; failures.push(`ncr ${c.q} n too big for ${range}`); }
+  }
+}
+els['range'].value = 'med'; // restore default
+console.log(`  range filter tested across ${Object.keys(RANGE_TESTS).length} ranges`);
+
+// ---- Dynamic factoring: variety + repeat guard ----
+const factSeen = new Set();
+els['range'].value = 'huge'; // big space = real variety test
+for (let i = 0; i < 200; i++) {
+  const f = genFactoring('hard');
+  const n = parseInt(f.q.replace(/\D/g, ''));
+  if (Object.keys(f.expected).length < 2) { rangeFail++; failures.push(`factoring ${f.q} has <2 prime factors`); }
+  if (n > 10000 || n < 12) { rangeFail++; failures.push(`factoring ${f.q} outside [12,10000]`); }
+  factSeen.add(n);
+}
+els['range'].value = 'med'; // restore default
+console.log(`  dynamic factoring variety (200 hard questions @huge range): ${factSeen.size} distinct numbers`);
+if (factSeen.size < 100) failures.push(`factoring too repetitive: only ${factSeen.size} distinct numbers`);
+
+if (rangeFail) failures.push(`range: ${rangeFail} violations`);
+console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
+failures.slice(0, 8).forEach(f => console.log('  -', f));

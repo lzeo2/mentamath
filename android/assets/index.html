@@ -48,6 +48,12 @@
   .stats { display: flex; gap: 24px; justify-content: center; margin-top: 18px; font-size: 14px; color: #999; }
   .stats b { color: #fff; font-size: 17px; }
   .key { color: #6b7280; font-size: 13px; margin-top: 12px; }
+  .overlay { position: fixed; inset: 0; background: rgba(10, 12, 16, .85); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal { background: #171b22; border: 1px solid #2a2f3a; border-radius: 16px; max-width: 420px; width: 100%; padding: 28px 24px; text-align: left; }
+  .modal h2 { font-size: 20px; margin-bottom: 14px; color: #fff; }
+  .step p { margin-bottom: 10px; font-size: 15px; line-height: 1.5; color: #ccc; }
+  .step code { background: #0f1115; border: 1px solid #2a2f3a; border-radius: 5px; padding: 1px 5px; font-size: 13px; }
+  .onb-nav { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -63,6 +69,14 @@
         <option value="easy">Easy</option>
         <option value="med" selected>Medium</option>
         <option value="hard">Hard</option>
+      </select>
+    </label>
+    <label>Range
+      <select id="range">
+        <option value="small">≤ 30</option>
+        <option value="med" selected>≤ 100</option>
+        <option value="large">≤ 1000</option>
+        <option value="huge">≤ 10000</option>
       </select>
     </label>
   </div>
@@ -81,6 +95,30 @@
     <div class="key" id="key"></div>
   </div>
 
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>Welcome to Mentamath 👋</h2>
+      <div class="steps">
+        <div class="step" data-step="1">
+          <p><b>What this is:</b> a mental math trainer. Pick a mode — arithmetic, exponents, n choose r, factoring, mixed, or your own combo — and answer as fast as you can.</p>
+          <p>Track your streak 🔥 and accuracy as you go. Three difficulty levels and four number ranges keep it fresh.</p>
+        </div>
+        <div class="step" data-step="2" style="display:none">
+          <p><b>How it works:</b></p>
+          <p>• Type your answer — it <b>auto-submits</b> the moment it's correct, no Enter needed</p>
+          <p>• Enter still works to check a wrong answer and see the right one</p>
+          <p>• Factoring? Type like <code>2^4×3</code> or <code>2x2x2x2x3</code></p>
+        </div>
+      </div>
+      <div class="onb-nav">
+        <button class="mode-btn" id="onbBack" style="display:none">Back</button>
+        <button class="mode-btn" id="onbNext">Next</button>
+        <button class="mode-btn" id="onbSkip">Skip</button>
+        <button class="mode-btn active" id="onbStart" style="display:none">Start practicing</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 "use strict";
 // ---------- helpers ----------
@@ -88,28 +126,42 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const pick = arr => arr[rand(0, arr.length - 1)];
 const fmtExp = (b, e) => e === 1 ? String(b) : `${b}<sup>${e}</sup>`;
 
+// ---------- range caps ----------
+const RANGE_CAPS = { small: 30, med: 100, large: 1000, huge: 10000 };
+const NCR_MAX = { small: 8, med: 12, large: 16, huge: 20 };
+function rangeCap() {
+  const r = document.getElementById('range');
+  return RANGE_CAPS[(r && r.value) ? r.value : 'med'];
+}
+function ncrMax() {
+  const r = document.getElementById('range');
+  return NCR_MAX[(r && r.value) ? r.value : 'med'];
+}
+
 // ---------- question generators: return {q, expected, check(text) -> bool, key} ----------
 function genArithmetic(diff) {
   const op = pick(['+', '−', '×', '÷']);
-  const lim = diff === 'easy' ? 12 : diff === 'med' ? 30 : 100;
+  const cap = rangeCap();
+  const lim = Math.min(cap, diff === 'easy' ? 12 : diff === 'med' ? 30 : 100);
   let a, b, ans;
-  if (op === '+') { a = rand(1, lim); b = rand(1, lim); ans = a + b; }
+  if (op === '+') { a = rand(1, Math.min(lim, cap - 1)); b = rand(1, Math.min(lim, cap - a)); ans = a + b; }
   else if (op === '−') { a = rand(1, lim); b = rand(1, a); ans = a - b; }
-  else if (op === '×') { a = rand(2, diff === 'hard' ? 15 : lim); b = rand(2, lim); ans = a * b; }
-  else { b = rand(2, lim); a = b * rand(1, lim); ans = a / b; }
+  else if (op === '×') { a = rand(2, Math.min(15, cap)); b = rand(2, Math.min(lim, Math.floor(cap / a) || 1)); ans = a * b; }
+  else { b = rand(2, Math.min(lim, cap)); a = b * rand(1, Math.floor(cap / b) || 1); ans = a / b; }
   return { kind: 'arith', q: `${a} ${op} ${b}`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
 }
 
 function genExponents(diff) {
+  const cap = rangeCap();
   const maxBase = diff === 'easy' ? 5 : diff === 'med' ? 9 : 15;
   const maxExp = diff === 'easy' ? 3 : diff === 'med' ? 4 : 6;
-  const b = rand(2, maxBase), e = rand(2, maxExp);
-  const ans = Math.pow(b, e);
+  let b, e, ans;
+  do { b = rand(2, maxBase); e = rand(2, maxExp); ans = Math.pow(b, e); } while (ans > cap);
   return { kind: 'exp', q: `${b}<sup>${e}</sup>`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
 }
 
 function genNCR(diff) {
-  const maxN = diff === 'easy' ? 8 : diff === 'med' ? 12 : 16;
+  const maxN = Math.min(ncrMax(), diff === 'easy' ? 8 : diff === 'med' ? 12 : 16);
   const n = rand(2, maxN), r = rand(0, Math.floor(n / 2) + 1);
   const ans = nCk(n, r);
   return { kind: 'ncr', q: `C(${n}, ${r})`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
@@ -122,19 +174,27 @@ function nCk(n, k) {
 }
 
 function genFactoring(diff) {
-  // build a number from 1-3 primes with small exponents
-  const primes = diff === 'easy' ? [2, 3, 5] : diff === 'med' ? [2, 3, 5, 7] : [2, 3, 5, 7, 11];
-  const count = diff === 'easy' ? 2 : rand(2, 3);
-  const factors = {};
-  let n = 1;
-  for (let i = 0; i < count; i++) {
-    const p = pick(primes);
-    const e = rand(1, diff === 'hard' ? 3 : 2);
-    if (n * Math.pow(p, e) > 2000) break;
-    factors[p] = (factors[p] || 0) + e;
-    n *= Math.pow(p, e);
+  // dynamic: build composite numbers from 2-4 primes, bounded by the range cap
+  const cap = rangeCap();
+  const primes = diff === 'easy' ? [2, 3, 5] : diff === 'med' ? [2, 3, 5, 7] : [2, 3, 5, 7, 11, 13];
+  const maxCount = diff === 'easy' ? 2 : diff === 'hard' ? 4 : 3;
+  let factors, n;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const count = diff === 'easy' ? 2 : rand(2, maxCount);
+    factors = {};
+    n = 1;
+    for (let i = 0; i < count && n <= cap; i++) {
+      const p = pick(primes);
+      const e = rand(1, diff === 'hard' ? 3 : 2);
+      if (n * Math.pow(p, e) > cap) break;
+      factors[p] = (factors[p] || 0) + e;
+      n *= Math.pow(p, e);
+    }
+    // repeat-guard only while plenty of alternatives exist; relax after 10 tries
+    if (n >= 12 && n <= cap && Object.keys(factors).length >= 2 && (attempt > 10 || !recentNums.has(n))) break;
   }
-  if (Object.keys(factors).length < 2 && count > 1) return genFactoring(diff); // keep it interesting
+  recentNums.add(n);
+  while (recentNums.size > 8) recentNums.delete(recentNums.values().next().value);
   const key = Object.entries(factors).sort((a, b) => a[0] - b[0])
     .map(([p, e]) => fmtExp(p, e)).join(' × ');
   return {
@@ -175,6 +235,7 @@ function genCombo(diff) {
 }
 
 // ---------- app state ----------
+const recentNums = new Set();
 const MODES = [
   { id: 'arith', label: '+ − × ÷', gen: genArithmetic },
   { id: 'exp',   label: 'Exponents', gen: genExponents },
@@ -223,6 +284,7 @@ for (const [kind, label] of Object.entries(KIND_LABELS)) {
 }
 window.setComboKinds = arr => { comboKinds = new Set(arr); };
 document.getElementById('diff').onchange = next;
+document.getElementById('range').onchange = next;
 
 const qEl = document.getElementById('question');
 const aEl = document.getElementById('answer');
@@ -234,11 +296,11 @@ function next() {
   keyEl.textContent = '';
   current = mode.gen(document.getElementById('diff').value);
   qEl.innerHTML = current.q;
+  aEl.inputMode = current.kind === 'fact' ? 'text' : 'numeric';
   aEl.focus();
 }
 
-aEl.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
+function submit() {
   const t = aEl.value.trim();
   if (!t || !current) return;
   asked++;
@@ -257,9 +319,49 @@ aEl.addEventListener('keydown', e => {
   keyEl.textContent = (current && current.kind === 'fact') ? 'accepts e.g. 2^4×3 or 2x2x2x2x3' : '';
   aEl.disabled = true;
   setTimeout(next, 900);
+}
+
+aEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submit();
+});
+
+// auto-submit: correct answer goes through the moment it's typed
+aEl.addEventListener('input', () => {
+  if (!current || aEl.disabled) return;
+  const t = aEl.value.trim();
+  if (!t) return;
+  if (current.kind === 'fact' ? current.check(t) : Number(t) === current.expected) submit();
 });
 
 next();
+
+// ---------- onboarding ----------
+let onbStep = 1;
+const overlay = document.getElementById('overlay');
+const onbNext = document.getElementById('onbNext');
+const onbBack = document.getElementById('onbBack');
+const onbSkip = document.getElementById('onbSkip');
+const onbStart = document.getElementById('onbStart');
+function showStep(n) {
+  onbStep = n;
+  document.querySelectorAll('.step').forEach(s => s.style.display = s.dataset.step == n ? '' : 'none');
+  onbNext.style.display = n === 2 ? 'none' : '';
+  onbBack.style.display = n === 1 ? 'none' : '';
+  onbStart.style.display = n === 2 ? '' : 'none';
+}
+function doneOnboarding() {
+  overlay.style.display = 'none';
+  try { localStorage.setItem('mentamath_onboarded', '1'); } catch (e) {}
+}
+onbNext.onclick = () => showStep(2);
+onbBack.onclick = () => showStep(1);
+onbSkip.onclick = doneOnboarding;
+onbStart.onclick = doneOnboarding;
+try {
+  if (!localStorage.getItem('mentamath_onboarded')) overlay.style.display = 'flex';
+} catch (e) {
+  overlay.style.display = 'flex';
+}
 </script>
 </body>
 </html>
