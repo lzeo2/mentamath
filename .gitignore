@@ -2,3 +2,4 @@ mentamath.apk
 *.keystore
 android/build/
 android/out/
+*.idsig
