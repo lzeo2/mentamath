@@ -22,6 +22,7 @@
     transition: all .15s; user-select: none;
   }
   .mode-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .mode-btn.off { opacity: .45; background: #0f1115; border-color: #2a2f3a; }
   .mode-btn:hover { border-color: #3b82f6; }
   .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; flex-wrap: wrap; justify-content: center; }
   .controls label { font-size: 13px; color: #999; }
@@ -54,6 +55,7 @@
   <div class="sub">mental math trainer</div>
 
   <div class="modes" id="modes"></div>
+  <div class="modes" id="comboPicker" style="display:none"></div>
 
   <div class="controls">
     <label>Difficulty
@@ -164,6 +166,14 @@ function genMixed(diff) {
   return gens[rand(0, gens.length - 1)](diff);
 }
 
+const KIND_GENS = { arith: genArithmetic, exp: genExponents, ncr: genNCR, fact: genFactoring };
+
+function genCombo(diff) {
+  const kinds = comboKinds && comboKinds.size ? [...comboKinds] : ['arith', 'exp', 'ncr', 'fact'];
+  const gens = kinds.map(k => KIND_GENS[k]);
+  return gens[rand(0, gens.length - 1)](diff);
+}
+
 // ---------- app state ----------
 const MODES = [
   { id: 'arith', label: '+ − × ÷', gen: genArithmetic },
@@ -171,18 +181,47 @@ const MODES = [
   { id: 'ncr',   label: 'n Choose r', gen: genNCR },
   { id: 'fact',  label: 'Factoring', gen: genFactoring },
   { id: 'mixed', label: 'Mixed', gen: genMixed },
+  { id: 'combo', label: 'Combo', gen: genCombo },
 ];
 let mode = MODES[0], current = null;
 let streak = 0, correct = 0, asked = 0;
+let comboKinds = new Set(['arith', 'exp', 'ncr', 'fact']);
 
 const modesEl = document.getElementById('modes');
 for (const m of MODES) {
   const b = document.createElement('button');
   b.className = 'mode-btn' + (m === mode ? ' active' : '');
   b.textContent = m.label;
-  b.onclick = () => { mode = m; document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); next(); };
+  b.onclick = () => {
+    mode = m;
+    document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    pickerEl.style.display = m.id === 'combo' ? 'flex' : 'none';
+    next();
+  };
   modesEl.appendChild(b);
 }
+// combo picker: choose which question types get mixed in
+const pickerEl = document.getElementById('comboPicker');
+const KIND_LABELS = { arith: '+ − × ÷', exp: 'Exponents', ncr: 'nCr', fact: 'Factoring' };
+for (const [kind, label] of Object.entries(KIND_LABELS)) {
+  const chip = document.createElement('button');
+  chip.className = 'mode-btn';
+  chip.textContent = label;
+  const sync = () => chip.classList.toggle('off', !comboKinds.has(kind));
+  chip.onclick = () => {
+    if (comboKinds.has(kind)) {
+      if (comboKinds.size === 1) return; // keep at least one type selected
+      comboKinds.delete(kind);
+    } else {
+      comboKinds.add(kind);
+    }
+    sync();
+  };
+  sync();
+  pickerEl.appendChild(chip);
+}
+window.setComboKinds = arr => { comboKinds = new Set(arr); };
 document.getElementById('diff').onchange = next;
 
 const qEl = document.getElementById('question');

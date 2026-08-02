@@ -11,6 +11,7 @@ Minimal mental math trainer — a single-file web app. No dependencies, no build
 | n Choose r | `C(12, 5)` | integer |
 | Factoring | `Factor 72` | prime factorization |
 | Mixed | random pick from all four | varies |
+| Combo | **your choice** — toggle which types are included | varies |
 
 ## How to use
 

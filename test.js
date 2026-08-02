@@ -8,6 +8,7 @@ function makeEl() {
   return {
     className: '', textContent: '', innerHTML: '', value: '', disabled: false,
     placeholder: '', onclick: null, addEventListener() {}, appendChild() {}, focus() {},
+    classList: { toggle() {}, remove() {}, add() {} },
   };
 }
 const els = {};
@@ -87,5 +88,27 @@ for (let i = 0; i < 600; i++) {
 if (mixedFail) failures.push(`mixed: ${mixedFail} unanswerable questions`);
 if (kinds.size !== 4) failures.push(`mixed: only saw kinds ${[...kinds]}`);
 console.log(kinds.size === 4 ? `  mixed mode produced all 4 kinds: ${[...kinds].join(', ')}` : `  ✗ mixed kinds: ${[...kinds]}`);
+console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
+failures.slice(0, 5).forEach(f => console.log('  -', f));
+
+// ---- Combo mode: subset selection via window.setComboKinds ----
+window.setComboKinds(['fact', 'ncr']);
+let comboSeen = new Set(), comboFail = 0;
+for (let i = 0; i < 300; i++) {
+  const g = genCombo('med');
+  comboSeen.add(g.kind);
+  if (!['fact', 'ncr'].includes(g.kind)) comboFail++;
+  if (g.kind === 'fact') {
+    const entries = Object.entries(g.expected).sort((a, b) => a[0] - b[0]);
+    const f = entries.map(([p, e]) => e === 1 ? `${p}` : `${p}^${e}`).join('*');
+    if (!g.check(f)) comboFail++;
+  } else if (!g.check(String(g.expected))) comboFail++;
+}
+if ([...comboSeen].some(k => !['fact', 'ncr'].includes(k))) failures.push(`combo leaked kinds: ${[...comboSeen]}`);
+if (comboFail) failures.push(`combo: ${comboFail} answerable failures`);
+window.setComboKinds(['arith']);
+const gSingle = genCombo('med');
+if (gSingle.kind !== 'arith') failures.push(`combo single-kind: got ${gSingle.kind}`);
+console.log(`  combo subset (fact+ncr) produced: ${[...comboSeen].join(', ')}`);
 console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
 failures.slice(0, 5).forEach(f => console.log('  -', f));
