@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mentamath</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0f1115; color: #e8e8e8;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 24px 16px 48px;
+  }
+  h1 { font-size: 22px; letter-spacing: 1px; margin-bottom: 4px; color: #fff; }
+  .sub { color: #888; font-size: 13px; margin-bottom: 20px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .mode-btn {
+    padding: 8px 14px; border-radius: 10px; border: 1px solid #2a2f3a;
+    background: #171b22; color: #ccc; font-size: 14px; cursor: pointer;
+    transition: all .15s; user-select: none;
+  }
+  .mode-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .mode-btn:hover { border-color: #3b82f6; }
+  .controls { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; flex-wrap: wrap; justify-content: center; }
+  .controls label { font-size: 13px; color: #999; }
+  select {
+    background: #171b22; color: #e8e8e8; border: 1px solid #2a2f3a;
+    padding: 6px 10px; border-radius: 8px; font-size: 14px;
+  }
+  .card {
+    background: #171b22; border: 1px solid #2a2f3a; border-radius: 16px;
+    padding: 36px 28px; width: 100%; max-width: 420px; text-align: center;
+  }
+  .question { font-size: 34px; font-weight: 600; margin-bottom: 26px; min-height: 50px; word-break: break-all; }
+  .answer-row { display: flex; gap: 10px; justify-content: center; }
+  input[type=text] {
+    background: #0f1115; border: 2px solid #2a2f3a; border-radius: 10px;
+    color: #fff; font-size: 24px; text-align: center; width: 180px; padding: 10px 8px;
+    outline: none;
+  }
+  input[type=text]:focus { border-color: #3b82f6; }
+  .feedback { min-height: 28px; margin-top: 14px; font-size: 17px; font-weight: 500; }
+  .feedback.correct { color: #34d399; }
+  .feedback.wrong { color: #f87171; }
+  .stats { display: flex; gap: 24px; justify-content: center; margin-top: 18px; font-size: 14px; color: #999; }
+  .stats b { color: #fff; font-size: 17px; }
+  .key { color: #6b7280; font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>MENTAMATH</h1>
+  <div class="sub">mental math trainer</div>
+
+  <div class="modes" id="modes"></div>
+
+  <div class="controls">
+    <label>Difficulty
+      <select id="diff">
+        <option value="easy">Easy</option>
+        <option value="med" selected>Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card">
+    <div class="question" id="question">—</div>
+    <div class="answer-row">
+      <input type="text" id="answer" inputmode="numeric" autocomplete="off" placeholder="?" disabled>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="stats">
+      <div>Streak <b id="streak">0</b></div>
+      <div>Correct <b id="correct">0</b></div>
+      <div>Asked <b id="asked">0</b></div>
+    </div>
+    <div class="key" id="key"></div>
+  </div>
+
+<script>
+"use strict";
+// ---------- helpers ----------
+const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = arr => arr[rand(0, arr.length - 1)];
+const fmtExp = (b, e) => e === 1 ? String(b) : `${b}<sup>${e}</sup>`;
+
+// ---------- question generators: return {q, expected, check(text) -> bool, key} ----------
+function genArithmetic(diff) {
+  const op = pick(['+', '−', '×', '÷']);
+  const lim = diff === 'easy' ? 12 : diff === 'med' ? 30 : 100;
+  let a, b, ans;
+  if (op === '+') { a = rand(1, lim); b = rand(1, lim); ans = a + b; }
+  else if (op === '−') { a = rand(1, lim); b = rand(1, a); ans = a - b; }
+  else if (op === '×') { a = rand(2, diff === 'hard' ? 15 : lim); b = rand(2, lim); ans = a * b; }
+  else { b = rand(2, lim); a = b * rand(1, lim); ans = a / b; }
+  return { q: `${a} ${op} ${b}`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+}
+
+function genExponents(diff) {
+  const maxBase = diff === 'easy' ? 5 : diff === 'med' ? 9 : 15;
+  const maxExp = diff === 'easy' ? 3 : diff === 'med' ? 4 : 6;
+  const b = rand(2, maxBase), e = rand(2, maxExp);
+  const ans = Math.pow(b, e);
+  return { q: `${b}<sup>${e}</sup>`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+}
+
+function genNCR(diff) {
+  const maxN = diff === 'easy' ? 8 : diff === 'med' ? 12 : 16;
+  const n = rand(2, maxN), r = rand(0, Math.floor(n / 2) + 1);
+  const ans = nCk(n, r);
+  return { q: `C(${n}, ${r})`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+}
+function nCk(n, k) {
+  if (k < 0 || k > n) return NaN;
+  let r = 1;
+  for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+  return Math.round(r);
+}
+
+function genFactoring(diff) {
+  // build a number from 1-3 primes with small exponents
+  const primes = diff === 'easy' ? [2, 3, 5] : diff === 'med' ? [2, 3, 5, 7] : [2, 3, 5, 7, 11];
+  const count = diff === 'easy' ? 2 : rand(2, 3);
+  const factors = {};
+  let n = 1;
+  for (let i = 0; i < count; i++) {
+    const p = pick(primes);
+    const e = rand(1, diff === 'hard' ? 3 : 2);
+    if (n * Math.pow(p, e) > 2000) break;
+    factors[p] = (factors[p] || 0) + e;
+    n *= Math.pow(p, e);
+  }
+  if (Object.keys(factors).length < 2 && count > 1) return genFactoring(diff); // keep it interesting
+  const key = Object.entries(factors).sort((a, b) => a[0] - b[0])
+    .map(([p, e]) => fmtExp(p, e)).join(' × ');
+  return {
+    q: `Factor ${n}`,
+    expected: factors,
+    check(t) {
+      // accept: "2^4*3", "2^4 x 3", "2x2x2x2x3", "2^4,3", "2 4 3" style, spaces anywhere
+      const s = t.toLowerCase().replace(/\s+/g, '');
+      if (!s) return false;
+      const got = {};
+      // split on separators, keep ^ pairs together
+      const tokens = s.split(/[×x*,]/).filter(Boolean);
+      for (let tok of tokens) {
+        const m = tok.match(/^(\d+)(?:\^(\d+))?$/);
+        if (!m) return false;
+        const p = Number(m[1]), e = Number(m[2] || 1);
+        if (!primes.includes(p) || e < 1) return false;
+        got[p] = (got[p] || 0) + e;
+      }
+      return JSON.stringify(got) === JSON.stringify(factors);
+    },
+    key
+  };
+}
+
+// ---------- app state ----------
+const MODES = [
+  { id: 'arith', label: '+ − × ÷', gen: genArithmetic },
+  { id: 'exp',   label: 'Exponents', gen: genExponents },
+  { id: 'ncr',   label: 'n Choose r', gen: genNCR },
+  { id: 'fact',  label: 'Factoring', gen: genFactoring },
+];
+let mode = MODES[0], current = null;
+let streak = 0, correct = 0, asked = 0;
+
+const modesEl = document.getElementById('modes');
+for (const m of MODES) {
+  const b = document.createElement('button');
+  b.className = 'mode-btn' + (m === mode ? ' active' : '');
+  b.textContent = m.label;
+  b.onclick = () => { mode = m; document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); next(); };
+  modesEl.appendChild(b);
+}
+document.getElementById('diff').onchange = next;
+
+const qEl = document.getElementById('question');
+const aEl = document.getElementById('answer');
+const fEl = document.getElementById('feedback');
+const keyEl = document.getElementById('key');
+
+function next() {
+  aEl.value = ''; aEl.disabled = false; fEl.textContent = ''; fEl.className = 'feedback';
+  keyEl.textContent = '';
+  current = mode.gen(document.getElementById('diff').value);
+  qEl.innerHTML = current.q;
+  aEl.focus();
+}
+
+aEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const t = aEl.value.trim();
+  if (!t || !current) return;
+  asked++;
+  document.getElementById('asked').textContent = asked;
+  if (current.check(t)) {
+    correct++; streak++;
+    fEl.textContent = '✓ correct';
+    fEl.className = 'feedback correct';
+  } else {
+    streak = 0;
+    fEl.textContent = `✗ correct: ${current.key}`;
+    fEl.className = 'feedback wrong';
+  }
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('correct').textContent = correct;
+  keyEl.textContent = mode.id === 'fact' ? 'accepts e.g. 2^4×3 or 2x2x2x2x3' : '';
+  aEl.disabled = true;
+  setTimeout(next, 900);
+});
+
+next();
+</script>
+</body>
+</html>
