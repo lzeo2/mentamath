@@ -95,7 +95,7 @@ function genArithmetic(diff) {
   else if (op === '−') { a = rand(1, lim); b = rand(1, a); ans = a - b; }
   else if (op === '×') { a = rand(2, diff === 'hard' ? 15 : lim); b = rand(2, lim); ans = a * b; }
   else { b = rand(2, lim); a = b * rand(1, lim); ans = a / b; }
-  return { q: `${a} ${op} ${b}`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+  return { kind: 'arith', q: `${a} ${op} ${b}`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
 }
 
 function genExponents(diff) {
@@ -103,14 +103,14 @@ function genExponents(diff) {
   const maxExp = diff === 'easy' ? 3 : diff === 'med' ? 4 : 6;
   const b = rand(2, maxBase), e = rand(2, maxExp);
   const ans = Math.pow(b, e);
-  return { q: `${b}<sup>${e}</sup>`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+  return { kind: 'exp', q: `${b}<sup>${e}</sup>`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
 }
 
 function genNCR(diff) {
   const maxN = diff === 'easy' ? 8 : diff === 'med' ? 12 : 16;
   const n = rand(2, maxN), r = rand(0, Math.floor(n / 2) + 1);
   const ans = nCk(n, r);
-  return { q: `C(${n}, ${r})`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
+  return { kind: 'ncr', q: `C(${n}, ${r})`, expected: ans, check: t => Number(t) === ans, key: String(ans) };
 }
 function nCk(n, k) {
   if (k < 0 || k > n) return NaN;
@@ -138,6 +138,7 @@ function genFactoring(diff) {
   return {
     q: `Factor ${n}`,
     expected: factors,
+    kind: 'fact',
     check(t) {
       // accept: "2^4*3", "2^4 x 3", "2x2x2x2x3", "2^4,3", "2 4 3" style, spaces anywhere
       const s = t.toLowerCase().replace(/\s+/g, '');
@@ -158,12 +159,18 @@ function genFactoring(diff) {
   };
 }
 
+function genMixed(diff) {
+  const gens = [genArithmetic, genExponents, genNCR, genFactoring];
+  return gens[rand(0, gens.length - 1)](diff);
+}
+
 // ---------- app state ----------
 const MODES = [
   { id: 'arith', label: '+ − × ÷', gen: genArithmetic },
   { id: 'exp',   label: 'Exponents', gen: genExponents },
   { id: 'ncr',   label: 'n Choose r', gen: genNCR },
   { id: 'fact',  label: 'Factoring', gen: genFactoring },
+  { id: 'mixed', label: 'Mixed', gen: genMixed },
 ];
 let mode = MODES[0], current = null;
 let streak = 0, correct = 0, asked = 0;
@@ -208,7 +215,7 @@ aEl.addEventListener('keydown', e => {
   }
   document.getElementById('streak').textContent = streak;
   document.getElementById('correct').textContent = correct;
-  keyEl.textContent = mode.id === 'fact' ? 'accepts e.g. 2^4×3 or 2x2x2x2x3' : '';
+  keyEl.textContent = (current && current.kind === 'fact') ? 'accepts e.g. 2^4×3 or 2x2x2x2x3' : '';
   aEl.disabled = true;
   setTimeout(next, 900);
 });

@@ -10,6 +10,7 @@ Minimal mental math trainer — a single-file web app. No dependencies, no build
 | Exponents | `3⁴` | integer |
 | n Choose r | `C(12, 5)` | integer |
 | Factoring | `Factor 72` | prime factorization |
+| Mixed | random pick from all four | varies |
 
 ## How to use
 

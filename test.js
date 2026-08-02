@@ -1,7 +1,8 @@
 // Test harness: stub browser DOM, load index.html script, exercise generators
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const script = html.match(/<script>([\s\S]*?)<\/script>/)[1]
+  .replace('"use strict";', ''); // non-strict eval so function decls leak to test scope
 
 function makeEl() {
   return {
@@ -68,3 +69,23 @@ for (let i = 0; i < 300; i++) {
 
 console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
 failures.slice(0, 10).forEach(f => console.log('  -', f));
+
+// ---- Mixed mode: every question must be answerable + all 4 kinds appear ----
+const kinds = new Set();
+let mixedFail = 0;
+for (let i = 0; i < 600; i++) {
+  const g = genMixed('med');
+  kinds.add(g.kind);
+  if (g.kind === 'fact') {
+    const entries = Object.entries(g.expected).sort((a, b) => a[0] - b[0]);
+    const f = entries.map(([p, e]) => e === 1 ? `${p}` : `${p}^${e}`).join('*');
+    if (!g.check(f)) mixedFail++;
+  } else {
+    if (!g.check(String(g.expected))) mixedFail++;
+  }
+}
+if (mixedFail) failures.push(`mixed: ${mixedFail} unanswerable questions`);
+if (kinds.size !== 4) failures.push(`mixed: only saw kinds ${[...kinds]}`);
+console.log(kinds.size === 4 ? `  mixed mode produced all 4 kinds: ${[...kinds].join(', ')}` : `  ✗ mixed kinds: ${[...kinds]}`);
+console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
+failures.slice(0, 5).forEach(f => console.log('  -', f));
