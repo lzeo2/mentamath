@@ -7,7 +7,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)[1]
 function makeEl() {
   return {
     className: '', textContent: '', innerHTML: '', value: '', disabled: false,
-    placeholder: '', onclick: null, addEventListener() {}, appendChild() {}, focus() {},
+    placeholder: '', onclick: null, addEventListener() {}, appendChild() {}, focus() {}, select() {},
     classList: { toggle() {}, remove() {}, add() {} },
     style: {},
   };
@@ -152,3 +152,25 @@ if (factSeen.size < 100) failures.push(`factoring too repetitive: only ${factSee
 if (rangeFail) failures.push(`range: ${rangeFail} violations`);
 console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
 failures.slice(0, 8).forEach(f => console.log('  -', f));
+
+// ---- Retry-until-correct flow ----
+global.setTimeout = () => {}; // stop auto-advance mid-test
+const retryEl = els['answer'];
+const q1 = window.__current();
+retryEl.value = '0'; // guaranteed wrong
+submit();
+if (retryEl.disabled) failures.push('retry: input disabled after wrong answer');
+if (els['feedback'].textContent !== '✗ try again') failures.push(`retry: wrong feedback "${els['feedback'].textContent}"`);
+if (window.__current() !== q1) failures.push('retry: advanced after wrong answer');
+if (els['streak'].textContent !== 0) failures.push('retry: streak not reset on wrong');
+retryEl.value = String(q1.expected);
+submit(); // correct on 2nd try
+if (els['feedback'].className !== 'feedback correct') failures.push('retry: not marked correct after retry');
+if (els['correct'].textContent !== 1) failures.push(`retry: correct counter = ${els['correct'].textContent}`);
+if (els['asked'].textContent !== 1) failures.push(`retry: asked should count once, got ${els['asked'].textContent}`);
+if (els['streak'].textContent !== 0) failures.push('retry: streak should stay 0 (answered on 2nd try)');
+const triesText = els['feedback'].textContent;
+if (!triesText.includes('2 tries')) failures.push(`retry: expected "2 tries" note, got "${triesText}"`);
+console.log('  retry-until-correct flow verified');
+console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
+failures.slice(0, 6).forEach(f => console.log('  -', f));

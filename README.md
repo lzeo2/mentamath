@@ -19,7 +19,7 @@ Open `index.html` in any browser — works on phone and desktop. Type the answer
 
 **Features:**
 - 🎓 **Onboarding** on first visit (skip anytime, remembered)
-- ⚡ **Auto-submit** — the moment your typed answer is correct it submits itself; Enter still checks wrong answers
+- ⚡ **Auto-submit** — the moment your typed answer is correct it submits itself; wrong answers don't skip — **retry until you nail it** (streak = first-try-correct only)
 - 🎚️ **Range filter** — cap generated numbers (≤30 / ≤100 / ≤1000 / ≤10000) alongside difficulty
 - 🔄 **Dynamic factoring** — composites built from 2–4 primes with a repeat-guard, so questions stay fresh
 

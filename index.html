@@ -106,7 +106,7 @@
         <div class="step" data-step="2" style="display:none">
           <p><b>How it works:</b></p>
           <p>• Type your answer — it <b>auto-submits</b> the moment it's correct, no Enter needed</p>
-          <p>• Enter still works to check a wrong answer and see the right one</p>
+          <p>• Get it wrong? No skipping — keep trying until you nail it</p>
           <p>• Factoring? Type like <code>2^4×3</code> or <code>2x2x2x2x3</code></p>
         </div>
       </div>
@@ -283,6 +283,7 @@ for (const [kind, label] of Object.entries(KIND_LABELS)) {
   pickerEl.appendChild(chip);
 }
 window.setComboKinds = arr => { comboKinds = new Set(arr); };
+window.__current = () => current;
 document.getElementById('diff').onchange = next;
 document.getElementById('range').onchange = next;
 
@@ -303,22 +304,25 @@ function next() {
 function submit() {
   const t = aEl.value.trim();
   if (!t || !current) return;
-  asked++;
-  document.getElementById('asked').textContent = asked;
+  current.tries = (current.tries || 0) + 1;
+  if (!current.answered) { current.answered = true; asked++; }
   if (current.check(t)) {
-    correct++; streak++;
-    fEl.textContent = '✓ correct';
+    correct++;
+    if (current.tries === 1) streak++;
+    fEl.textContent = current.tries === 1 ? '✓ correct' : `✓ correct (${current.tries} tries)`;
     fEl.className = 'feedback correct';
+    aEl.disabled = true;
+    setTimeout(next, 900);
   } else {
     streak = 0;
-    fEl.textContent = `✗ correct: ${current.key}`;
+    fEl.textContent = '✗ try again';
     fEl.className = 'feedback wrong';
+    aEl.focus(); aEl.select();
   }
   document.getElementById('streak').textContent = streak;
   document.getElementById('correct').textContent = correct;
+  document.getElementById('asked').textContent = asked;
   keyEl.textContent = (current && current.kind === 'fact') ? 'accepts e.g. 2^4×3 or 2x2x2x2x3' : '';
-  aEl.disabled = true;
-  setTimeout(next, 900);
 }
 
 aEl.addEventListener('keydown', e => {
