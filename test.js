@@ -83,6 +83,19 @@ for (let i = 0; i < 400; i++) {
 }
 if (!trueSeen || !falseSeen) failures.push(`div: only ${trueSeen} true / ${falseSeen} false cases — need both`);
 console.log(`  divisibility: ${trueSeen} true / ${falseSeen} false questions`);
+// ---- divisor range toggle: divisor obeys its cap independently of diff ----
+const DIV_CAP_TESTS = { small: 5, med: 12, large: 20 };
+let divRangeFail = 0;
+for (const [divRange, dcap] of Object.entries(DIV_CAP_TESTS)) {
+  els['divrange'].value = divRange;
+  for (let i = 0; i < 120; i++) {
+    const d = genDivisible('hard'); // hardest diff to force y up toward cap
+    const dyy = Number(d.q.match(/by (\d+)\?/)[1]);
+    if (dyy < 2 || dyy > dcap) { divRangeFail++; failures.push(`divisors: y=${dyy} exceeds ${divRange} cap ${dcap}`); }
+  }
+}
+els['divrange'].value = 'med';
+if (divRangeFail) failures.push(`divisors toggle: ${divRangeFail} violations`);
 // ---- ranges ----
 for (let i = 0; i < 300; i++) {
   const g = genFactoring('hard');

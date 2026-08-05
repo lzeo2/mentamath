@@ -24,6 +24,7 @@ Open `index.html` in any browser — works on phone and desktop. Type the answer
 - 🎚️ **Range filter** — cap generated numbers (≤30 / ≤100 / ≤1000 / ≤10000) alongside difficulty
 - 🔄 **Dynamic factoring** — composites built from 2–4 primes with a repeat-guard, so questions stay fresh
 - ✅ **Divisibility** — "is z divisible by y?" with **Yes / No** tap buttons (~60% true so it stays honest)
+- 🎯 **Divisors toggle** — cap the divisor size (≤5 / ≤12 / ≤20) independently of difficulty and number range
 
 **Factoring answers** accept flexible formats:
 `2^4×3`, `2^4 * 3`, `2x2x2x2x3`, `2^4,3` — all valid for 48.
