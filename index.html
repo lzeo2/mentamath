@@ -42,6 +42,10 @@
     outline: none;
   }
   input[type=text]:focus { border-color: #3b82f6; }
+  .tf-row { gap: 14px; }
+  .tf-btn { font-size: 18px; padding: 12px 24px; min-width: 120px; }
+  .tf-btn:disabled { opacity: .45; cursor: default; }
+  .tf-btn:disabled:hover { border-color: #2a2f3a; }
   .feedback { min-height: 28px; margin-top: 14px; font-size: 17px; font-weight: 500; }
   .feedback.correct { color: #34d399; }
   .feedback.wrong { color: #f87171; }
@@ -83,8 +87,12 @@
 
   <div class="card">
     <div class="question" id="question">—</div>
-    <div class="answer-row">
+    <div class="answer-row" id="inputRow">
       <input type="text" id="answer" inputmode="numeric" autocomplete="off" placeholder="?" disabled>
+    </div>
+    <div class="answer-row tf-row" id="tfRow" style="display:none">
+      <button class="mode-btn tf-btn" id="btnTrue">Yes ✓</button>
+      <button class="mode-btn tf-btn" id="btnFalse">No ✗</button>
     </div>
     <div class="feedback" id="feedback"></div>
     <div class="stats">
@@ -100,12 +108,13 @@
       <h2>Welcome to Mentamath 👋</h2>
       <div class="steps">
         <div class="step" data-step="1">
-          <p><b>What this is:</b> a mental math trainer. Pick a mode — arithmetic, exponents, n choose r, factoring, mixed, or your own combo — and answer as fast as you can.</p>
+          <p><b>What this is:</b> a mental math trainer. Pick a mode — arithmetic, exponents, n choose r, divisibility, factoring, mixed, or your own combo — and answer as fast as you can.</p>
           <p>Track your streak 🔥 and accuracy as you go. Three difficulty levels and four number ranges keep it fresh.</p>
         </div>
         <div class="step" data-step="2" style="display:none">
           <p><b>How it works:</b></p>
           <p>• Type your answer — it <b>auto-submits</b> the moment it's correct, no Enter needed</p>
+          <p>• Divisibility? Just tap <b>Yes ✓</b> or <b>No ✗</b></p>
           <p>• Get it wrong? No skipping — keep trying until you nail it</p>
           <p>• Factoring? Type like <code>2^4×3</code> or <code>2x2x2x2x3</code></p>
         </div>
@@ -173,6 +182,31 @@ function nCk(n, k) {
   return Math.round(r);
 }
 
+function genDivisible(diff) {
+  const cap = rangeCap();
+  const lim = Math.min(cap, diff === 'easy' ? 25 : diff === 'med' ? 60 : 150);
+  const y = rand(2, diff === 'easy' ? 5 : diff === 'med' ? 12 : 20);
+  let z;
+  if (Math.random() < 0.6) { // ~60% are actually divisible
+    z = y * rand(1, Math.max(1, Math.floor(lim / y)));
+  } else {
+    do { z = rand(y + 1, lim); } while (z % y === 0);
+  }
+  const expected = z % y === 0;
+  return {
+    kind: 'div',
+    q: `Is ${z} divisible by ${y}?`,
+    expected,
+    check(t) {
+      const s = String(t).toLowerCase().trim();
+      if (['true', 'yes', 'y', 't', '1'].includes(s)) return expected;
+      if (['false', 'no', 'n', 'f', '0'].includes(s)) return !expected;
+      return false;
+    },
+    key: expected ? 'Yes — divisible' : 'No — not divisible',
+  };
+}
+
 function genFactoring(diff) {
   // dynamic: build composite numbers from 2-4 primes, bounded by the range cap
   const cap = rangeCap();
@@ -222,14 +256,14 @@ function genFactoring(diff) {
 }
 
 function genMixed(diff) {
-  const gens = [genArithmetic, genExponents, genNCR, genFactoring];
+  const gens = [genArithmetic, genExponents, genNCR, genDivisible, genFactoring];
   return gens[rand(0, gens.length - 1)](diff);
 }
 
-const KIND_GENS = { arith: genArithmetic, exp: genExponents, ncr: genNCR, fact: genFactoring };
+const KIND_GENS = { arith: genArithmetic, exp: genExponents, ncr: genNCR, div: genDivisible, fact: genFactoring };
 
 function genCombo(diff) {
-  const kinds = comboKinds && comboKinds.size ? [...comboKinds] : ['arith', 'exp', 'ncr', 'fact'];
+  const kinds = comboKinds && comboKinds.size ? [...comboKinds] : ['arith', 'exp', 'ncr', 'div', 'fact'];
   const gens = kinds.map(k => KIND_GENS[k]);
   return gens[rand(0, gens.length - 1)](diff);
 }
@@ -240,13 +274,14 @@ const MODES = [
   { id: 'arith', label: '+ − × ÷', gen: genArithmetic },
   { id: 'exp',   label: 'Exponents', gen: genExponents },
   { id: 'ncr',   label: 'n Choose r', gen: genNCR },
+  { id: 'div',   label: 'Divisibility', gen: genDivisible },
   { id: 'fact',  label: 'Factoring', gen: genFactoring },
   { id: 'mixed', label: 'Mixed', gen: genMixed },
   { id: 'combo', label: 'Combo', gen: genCombo },
 ];
 let mode = MODES[0], current = null;
 let streak = 0, correct = 0, asked = 0;
-let comboKinds = new Set(['arith', 'exp', 'ncr', 'fact']);
+let comboKinds = new Set(['arith', 'exp', 'ncr', 'div', 'fact']);
 
 const modesEl = document.getElementById('modes');
 for (const m of MODES) {
@@ -264,7 +299,7 @@ for (const m of MODES) {
 }
 // combo picker: choose which question types get mixed in
 const pickerEl = document.getElementById('comboPicker');
-const KIND_LABELS = { arith: '+ − × ÷', exp: 'Exponents', ncr: 'nCr', fact: 'Factoring' };
+const KIND_LABELS = { arith: '+ − × ÷', exp: 'Exponents', ncr: 'nCr', div: 'Divisibility', fact: 'Factoring' };
 for (const [kind, label] of Object.entries(KIND_LABELS)) {
   const chip = document.createElement('button');
   chip.className = 'mode-btn';
@@ -291,13 +326,23 @@ const qEl = document.getElementById('question');
 const aEl = document.getElementById('answer');
 const fEl = document.getElementById('feedback');
 const keyEl = document.getElementById('key');
+const inputRow = document.getElementById('inputRow');
+const tfRow = document.getElementById('tfRow');
+const btnTrue = document.getElementById('btnTrue');
+const btnFalse = document.getElementById('btnFalse');
+btnTrue.onclick = () => { aEl.value = 'true'; submit(); };
+btnFalse.onclick = () => { aEl.value = 'false'; submit(); };
 
 function next() {
   aEl.value = ''; aEl.disabled = false; fEl.textContent = ''; fEl.className = 'feedback';
   keyEl.textContent = '';
   current = mode.gen(document.getElementById('diff').value);
   qEl.innerHTML = current.q;
-  aEl.inputMode = current.kind === 'fact' ? 'text' : 'numeric';
+  aEl.inputMode = (current.kind === 'fact' || current.kind === 'div') ? 'text' : 'numeric';
+  const isDiv = current.kind === 'div';
+  tfRow.style.display = isDiv ? 'flex' : 'none';
+  inputRow.style.display = isDiv ? 'none' : 'flex';
+  btnTrue.disabled = btnFalse.disabled = false;
   aEl.focus();
 }
 
@@ -312,6 +357,7 @@ function submit() {
     fEl.textContent = current.tries === 1 ? '✓ correct' : `✓ correct (${current.tries} tries)`;
     fEl.className = 'feedback correct';
     aEl.disabled = true;
+    btnTrue.disabled = btnFalse.disabled = true;
     setTimeout(next, 900);
   } else {
     streak = 0;
@@ -334,7 +380,9 @@ aEl.addEventListener('input', () => {
   if (!current || aEl.disabled) return;
   const t = aEl.value.trim();
   if (!t) return;
-  if (current.kind === 'fact' ? current.check(t) : Number(t) === current.expected) submit();
+  if (current.kind === 'fact' || current.kind === 'div') {
+    if (current.check(t)) submit();
+  } else if (Number(t) === current.expected) submit();
 });
 
 next();

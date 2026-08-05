@@ -62,6 +62,27 @@ for (let i = 0; i < 200; i++) {
   const g = genFactoring('easy');
   if (Object.keys(g.expected).length < 2) failures.push(`factoring easy produced single-prime ${g.q}`);
 }
+// ---- divisibility: true/false with all accepted word forms ----
+const TRUE_WORDS = ['true', 'yes', 'y', 't', '1'];
+const FALSE_WORDS = ['false', 'no', 'n', 'f', '0'];
+let trueSeen = 0, falseSeen = 0;
+for (let i = 0; i < 400; i++) {
+  const g = genDivisible(diff);
+  const m = g.q.match(/Is (\d+) divisible by (\d+)\?/);
+  const z = Number(m[1]), y = Number(m[2]);
+  const actually = z % y === 0;
+  if (actually !== g.expected) failures.push(`div: expected mismatch ${g.q} -> ${g.expected}`);
+  if (y < 2 || z < y) failures.push(`div: bad numbers ${g.q}`);
+  // every accepted form must agree
+  const words = g.expected ? TRUE_WORDS : FALSE_WORDS;
+  const wrongWords = g.expected ? FALSE_WORDS : TRUE_WORDS;
+  for (const w of words) if (!g.check(w)) failures.push(`div rejected "${w}" for ${g.q} (expected ${g.expected})`);
+  for (const w of wrongWords) if (g.check(w)) failures.push(`div accepted wrong "${w}" for ${g.q} (expected ${g.expected})`);
+  if (g.check('maybe')) failures.push(`div accepted junk "maybe" for ${g.q}`);
+  g.expected ? trueSeen++ : falseSeen++;
+}
+if (!trueSeen || !falseSeen) failures.push(`div: only ${trueSeen} true / ${falseSeen} false cases — need both`);
+console.log(`  divisibility: ${trueSeen} true / ${falseSeen} false questions`);
 // ---- ranges ----
 for (let i = 0; i < 300; i++) {
   const g = genFactoring('hard');
@@ -87,8 +108,8 @@ for (let i = 0; i < 600; i++) {
   }
 }
 if (mixedFail) failures.push(`mixed: ${mixedFail} unanswerable questions`);
-if (kinds.size !== 4) failures.push(`mixed: only saw kinds ${[...kinds]}`);
-console.log(kinds.size === 4 ? `  mixed mode produced all 4 kinds: ${[...kinds].join(', ')}` : `  ✗ mixed kinds: ${[...kinds]}`);
+if (kinds.size !== 5) failures.push(`mixed: only saw kinds ${[...kinds]}`);
+console.log(kinds.size === 5 ? `  mixed mode produced all 5 kinds: ${[...kinds].join(', ')}` : `  ✗ mixed kinds: ${[...kinds]}`);
 console.log(failures.length === 0 ? '✅ ALL TESTS PASSED' : `❌ ${failures.length} FAILURES`);
 failures.slice(0, 5).forEach(f => console.log('  -', f));
 
@@ -130,6 +151,9 @@ for (const [range, cap] of Object.entries(RANGE_TESTS)) {
     const c = genNCR('med');
     const m = c.q.match(/C\((\d+),/);
     if (m && Number(m[1]) > ({ small: 8, med: 12, large: 16, huge: 20 })[range]) { rangeFail++; failures.push(`ncr ${c.q} n too big for ${range}`); }
+    const d = genDivisible('med');
+    const dz = Number(d.q.match(/Is (\d+)/)[1]);
+    if (dz > cap) { rangeFail++; failures.push(`div ${d.q} exceeds ${range} cap`); }
   }
 }
 els['range'].value = 'med'; // restore default

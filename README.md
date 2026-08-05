@@ -9,8 +9,9 @@ Minimal mental math trainer — a single-file web app. No dependencies, no build
 | `+ − × ÷` | `7 × 8` | integer |
 | Exponents | `3⁴` | integer |
 | n Choose r | `C(12, 5)` | integer |
+| Divisibility | `Is 48 divisible by 7?` | Yes / No (true/false) |
 | Factoring | `Factor 72` | prime factorization |
-| Mixed | random pick from all four | varies |
+| Mixed | random pick from all five | varies |
 | Combo | **your choice** — toggle which types are included | varies |
 
 ## How to use
@@ -22,6 +23,7 @@ Open `index.html` in any browser — works on phone and desktop. Type the answer
 - ⚡ **Auto-submit** — the moment your typed answer is correct it submits itself; wrong answers don't skip — **retry until you nail it** (streak = first-try-correct only)
 - 🎚️ **Range filter** — cap generated numbers (≤30 / ≤100 / ≤1000 / ≤10000) alongside difficulty
 - 🔄 **Dynamic factoring** — composites built from 2–4 primes with a repeat-guard, so questions stay fresh
+- ✅ **Divisibility** — "is z divisible by y?" with **Yes / No** tap buttons (~60% true so it stays honest)
 
 **Factoring answers** accept flexible formats:
 `2^4×3`, `2^4 * 3`, `2x2x2x2x3`, `2^4,3` — all valid for 48.
