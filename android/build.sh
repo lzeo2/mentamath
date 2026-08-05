@@ -58,20 +58,27 @@ zip -j "$BUILD_DIR/unsigned.apk" "$BUILD_DIR/classes.dex"
 echo "=== 7. zipalign ==="
 "$ZIPALIGN" -f 4 "$BUILD_DIR/unsigned.apk" "$BUILD_DIR/aligned.apk"
 
-echo "=== 8. generate keystore ==="
-keytool -genkeypair \
-    -keystore "$BUILD_DIR/mentamath.keystore" \
-    -alias mentamath \
-    -storepass mentamath \
-    -keypass mentamath \
-    -dname "CN=Mentamath" \
-    -keyalg RSA \
-    -validity 10000
+echo "=== 8. keystore (persistent — created once, reused every build) ==="
+KEYSTORE="$PROJECT_ROOT/keystore/mentamath.keystore"
+if [ ! -f "$KEYSTORE" ]; then
+    mkdir -p "$PROJECT_ROOT/keystore"
+    keytool -genkeypair \
+        -keystore "$KEYSTORE" \
+        -alias mentamath \
+        -storepass mentamath \
+        -keypass mentamath \
+        -dname "CN=Mentamath" \
+        -keyalg RSA \
+        -validity 10000
+    echo "generated new keystore (new app identity)"
+else
+    echo "reusing existing keystore (stable signature → updates install cleanly)"
+fi
 
 echo "=== 9. apksigner sign ==="
 if [ -x "$APKSIGNER" ]; then
     "$APKSIGNER" sign \
-        --ks "$BUILD_DIR/mentamath.keystore" \
+        --ks "$KEYSTORE" \
         --ks-pass pass:mentamath \
         --out /home/leozhang/mentamath/mentamath.apk \
         "$BUILD_DIR/aligned.apk"
@@ -83,7 +90,7 @@ else
         exit 1
     fi
     java -cp "$APKSIGNER_JAR" com.android.apksigner.ApkSignerTool sign \
-        --ks "$BUILD_DIR/mentamath.keystore" \
+        --ks "$KEYSTORE" \
         --ks-pass pass:mentamath \
         --out /home/leozhang/mentamath/mentamath.apk \
         "$BUILD_DIR/aligned.apk"
