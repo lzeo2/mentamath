@@ -96,6 +96,26 @@ for (const [divRange, dcap] of Object.entries(DIV_CAP_TESTS)) {
 }
 els['divrange'].value = 'med';
 if (divRangeFail) failures.push(`divisors toggle: ${divRangeFail} violations`);
+// ---- divisor type toggle: primes only / rule numbers only ----
+const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19];
+const RULES = [2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+els['divtype'].value = 'prime';
+let primeFail = 0;
+for (let i = 0; i < 200; i++) {
+  const d = genDivisible('hard');
+  const dy = Number(d.q.match(/by (\d+)\?/)[1]);
+  if (!PRIMES.includes(dy) || dy > 20) { primeFail++; failures.push(`div prime-only: y=${dy} not a prime ≤20`); }
+}
+els['divtype'].value = 'rule';
+let ruleTypeFail = 0;
+for (let i = 0; i < 200; i++) {
+  const d = genDivisible('hard');
+  const dy = Number(d.q.match(/by (\d+)\?/)[1]);
+  if (!RULES.includes(dy) || dy > 20) { ruleTypeFail++; failures.push(`div rule-only: y=${dy} not a rule number ≤20`); }
+}
+els['divtype'].value = 'all';
+if (primeFail) failures.push(`divisors prime-only: ${primeFail} violations`);
+if (ruleTypeFail) failures.push(`divisors rule-only: ${ruleTypeFail} violations`);
 // ---- ranges ----
 for (let i = 0; i < 300; i++) {
   const g = genFactoring('hard');

@@ -90,6 +90,13 @@
         <option value="large">≤ 20</option>
       </select>
     </label>
+    <label>Type
+      <select id="divtype">
+        <option value="all" selected>All numbers</option>
+        <option value="prime">Primes only</option>
+        <option value="rule">Rule numbers</option>
+      </select>
+    </label>
   </div>
 
   <div class="card">
@@ -146,6 +153,9 @@ const fmtExp = (b, e) => e === 1 ? String(b) : `${b}<sup>${e}</sup>`;
 const RANGE_CAPS = { small: 30, med: 100, large: 1000, huge: 10000 };
 const NCR_MAX = { small: 8, med: 12, large: 16, huge: 20 };
 const DIV_CAPS = { small: 5, med: 12, large: 20 };
+// divisors with clean mental divisibility rules (2,3,4,5,6,8,9,10,11,12)
+const RULE_DIVS = [2, 3, 4, 5, 6, 8, 9, 10, 11, 12];
+const PRIME_DIVS = [2, 3, 5, 7, 11, 13, 17, 19];
 function rangeCap() {
   const r = document.getElementById('range');
   return RANGE_CAPS[(r && r.value) ? r.value : 'med'];
@@ -157,6 +167,13 @@ function ncrMax() {
 function divCap() {
   const r = document.getElementById('divrange');
   return DIV_CAPS[(r && r.value) ? r.value : 'med'];
+}
+function divPool() {
+  const r = document.getElementById('divtype');
+  const t = (r && r.value) ? r.value : 'all';
+  if (t === 'prime') return PRIME_DIVS;
+  if (t === 'rule') return RULE_DIVS;
+  return null; // all numbers
 }
 
 // ---------- question generators: return {q, expected, check(text) -> bool, key} ----------
@@ -197,7 +214,9 @@ function nCk(n, k) {
 function genDivisible(diff) {
   const cap = rangeCap();
   const lim = Math.min(cap, diff === 'easy' ? 25 : diff === 'med' ? 60 : 150);
-  const y = rand(2, divCap());
+  const dcap = divCap();
+  const pool = divPool();
+  const y = pool ? pick(pool.filter(p => p <= dcap)) : rand(2, dcap);
   let z;
   if (Math.random() < 0.6) { // ~60% are actually divisible
     z = y * rand(1, Math.max(1, Math.floor(lim / y)));
@@ -334,6 +353,7 @@ window.__current = () => current;
 document.getElementById('diff').onchange = next;
 document.getElementById('range').onchange = next;
 document.getElementById('divrange').onchange = next;
+document.getElementById('divtype').onchange = next;
 
 const qEl = document.getElementById('question');
 const aEl = document.getElementById('answer');

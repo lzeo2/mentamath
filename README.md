@@ -25,6 +25,7 @@ Open `index.html` in any browser — works on phone and desktop. Type the answer
 - 🔄 **Dynamic factoring** — composites built from 2–4 primes with a repeat-guard, so questions stay fresh
 - ✅ **Divisibility** — "is z divisible by y?" with **Yes / No** tap buttons (~60% true so it stays honest)
 - 🎯 **Divisors toggle** — cap the divisor size (≤5 / ≤12 / ≤20) independently of difficulty and number range
+- 🔢 **Divisor type** — *All numbers*, **Primes only** (2,3,5,7,11,13,17,19), or **Rule numbers** (2,3,4,5,6,8,9,10,11,12 — divisors with mental divisibility rules)
 
 **Factoring answers** accept flexible formats:
 `2^4×3`, `2^4 * 3`, `2x2x2x2x3`, `2^4,3` — all valid for 48.
