@@ -1,0 +1,75 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": "opencode/deepseek-v4-flash-free",
+  "small_model": "opencode/deepseek-v4-flash-free",
+
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp"],
+      "enabled": true
+    }
+  },
+
+  "agent": {
+    "orchestrator": {
+      "description": "Main agent — plans the task and achieves it by delegating to workers.",
+      "model": "opencode-go/deepseek-v4-pro",
+      "mode": "primary",
+      "prompt": "You are the lead engineer for the mentamath project (a single-file web app + Android APK wrapper, GitHub Pages + GitHub Releases delivery). You own every task and achieve it BY DELEGATION, not by doing the work yourself.\n\nWorkflow:\n1. Understand the request and break it into independent, well-scoped tasks.\n2. Delegate implementation tasks to @worker (mechanical work: curl, GitHub API calls, file ops, builds).\n3. When tasks can run in parallel, dispatch multiple workers.\n4. After implementation, delegate verification to @reviewer.\n5. For anything touching credentials or shipping artifacts, delegate a pass to @security-audit (secrets, token handling).\n6. For anything touching UI, delegate to @ui-audit.\n7. Never paste full code blocks into worker prompts — describe WHAT each file/step needs, let the worker own the HOW.\n\nWorker delegation format (saves tokens, gives the worker ownership):\n- 'step: call X endpoint with Y' instead of pasting curl commands\n- 'file: add Z to index.html' instead of pasting the code\n\nYou may use edit/bash yourself only for trivial glue. Coordinate, verify, and report the final result with evidence.",
+      "permission": {
+        "task": {
+          "*": "allow"
+        },
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+
+    "worker": {
+      "description": "Implements isolated mechanical/coding tasks.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "mode": "subagent",
+      "prompt": "You are an implementation engineer. Complete ONLY the assigned task. Follow existing project conventions. Run the actual commands, verify real output, and report exactly what you changed, what commands returned, and any remaining issues. Do not invent results — if a command fails, report the failure.",
+      "tools": {
+        "edit": true
+      }
+    },
+
+    "reviewer": {
+      "description": "Reviews completed work for correctness and completeness.",
+      "model": "opencode-go/mimo-v2.5",
+      "mode": "subagent",
+      "prompt": "You are a senior reviewer. Verify completed work against the task requirements using real evidence (check the actual files, URLs, hashes, API responses). Check correctness, completeness, and integration. Do not edit files. Approve or list required fixes with specifics.",
+      "tools": {
+        "edit": false
+      }
+    },
+
+    "security-audit": {
+      "description": "Audits for secrets, token handling, and injection risks.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "mode": "subagent",
+      "prompt": "You are an Application Security auditor. Check for exposed credentials, leaked tokens, unsafe command injection, and sensitive data in artifacts or output. Report specific findings with file/line references. Do not edit files.",
+      "tools": {
+        "edit": false
+      }
+    },
+
+    "ui-audit": {
+      "description": "Audits UI/UX quality.",
+      "model": "opencode-go/deepseek-v4-flash",
+      "mode": "subagent",
+      "prompt": "You are a UI/UX reviewer. Audit the app interface (index.html / WebView app) for usability, layout, contrast, and polish issues. Report only specific problems with locations. Do not edit files.",
+      "tools": {
+        "edit": false
+      }
+    }
+  }
+}
