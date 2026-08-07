@@ -41,7 +41,7 @@ cd "$PROJECT_ROOT"
 
 echo "=== 5. d8 ==="
 if [ -x "$D8" ]; then
-    "$D8" --output "$BUILD_DIR" "$BUILD_DIR/classes.jar"
+    "$D8" --release --lib "$PLATFORM" --output "$BUILD_DIR" "$BUILD_DIR/classes.jar"
 else
     # fallback to java -cp
     D8_JAR=$(ls "$BUILD_TOOLS"/d8*.jar 2>/dev/null | head -n1)

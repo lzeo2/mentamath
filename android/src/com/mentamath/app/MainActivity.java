@@ -71,9 +71,21 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient());
         webView.loadUrl("file:///android_asset/index.html");
 
-        downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
-        checkForUpdates();
+        // Updater setup — must NEVER block the app if something goes wrong.
+        try {
+            downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                // Android 14+ (targetSdk 34) REQUIRES an export flag or the
+                // registration throws SecurityException and the app crashes.
+                registerReceiver(downloadReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(downloadReceiver, filter);
+            }
+            checkForUpdates();
+        } catch (Exception e) {
+            // updater failure must not prevent the app from opening
+        }
     }
 
     @Override
