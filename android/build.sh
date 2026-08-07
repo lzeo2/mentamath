@@ -80,6 +80,9 @@ if [ -x "$APKSIGNER" ]; then
     "$APKSIGNER" sign \
         --ks "$KEYSTORE" \
         --ks-pass pass:mentamath \
+        --v1-signing-enabled true \
+        --v2-signing-enabled true \
+        --v3-signing-enabled true \
         --out /home/leozhang/mentamath/mentamath.apk \
         "$BUILD_DIR/aligned.apk"
 else
@@ -92,6 +95,9 @@ else
     java -cp "$APKSIGNER_JAR" com.android.apksigner.ApkSignerTool sign \
         --ks "$KEYSTORE" \
         --ks-pass pass:mentamath \
+        --v1-signing-enabled true \
+        --v2-signing-enabled true \
+        --v3-signing-enabled true \
         --out /home/leozhang/mentamath/mentamath.apk \
         "$BUILD_DIR/aligned.apk"
 fi

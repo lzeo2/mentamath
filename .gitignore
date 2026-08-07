@@ -1,4 +1,5 @@
 mentamath.apk
+*.apk
 *.keystore
 android/build/
 android/out/
