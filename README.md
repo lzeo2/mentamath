@@ -42,3 +42,7 @@ python3 -m http.server 8080 --directory ~/mentamath
 - Single `index.html` — vanilla HTML/CSS/JS, zero dependencies
 - Three difficulty tiers scale number ranges per mode
 - Keyboard-first: Enter submits, next question auto-focuses
+
+## Android app (APK)
+
+Latest: **[mentamath-v1.5.apk](https://github.com/lzeo2/mentamath/releases/download/v1.5/mentamath-v1.5.apk)** — or grab `mentamath-v1.5.apk` from the repo root. Triple-signed, works on Android 5.0+.
