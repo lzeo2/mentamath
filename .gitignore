@@ -4,3 +4,4 @@ mentamath.apk
 android/build/
 android/out/
 *.idsig
+.gh_token
